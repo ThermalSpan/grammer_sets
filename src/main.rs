@@ -2,6 +2,10 @@ extern crate clap;
 #[macro_use] extern crate nom; 
 
 use clap::{Arg, App};
+use std::fs::File;
+use std::io::Read;
+use std::path::Path;
+use std::process::exit;
 
 // Programmer defined constants
 static PROGRAM_NAME: &'static str = "grammer_sets";
@@ -18,28 +22,24 @@ fn main() {
             .long("input")
             .short("i")
             .value_name("file/path")
-            .takes_value(true))
+            .takes_value(true)
+            .required(true))
         .get_matches();
 
-    let x = b"
-:Start:
-S
+    let input_path = Path::new(args.value_of("INPUT_FILE").unwrap());
+    if ! input_path.exists() {
+        println!("The passed input file:\n{}\nDoes not exist!", 
+            input_path.display()
+        );
+        exit(1);
+    }
 
-:Terminals:
-Abcd B C D
+    let mut input_file = File::open(&input_path).unwrap();
+    let mut input_buffer = Vec::new();
+    input_file.read_to_end(&mut input_buffer)
+        .expect("Unable to read from file");
 
-:NonTerminals:
-E F G H
-
-:Rules:
-S -> A B C D.
-E -> A.
-F -> B.
-G -> C.
-H -> D.
-";
-
-    let g = parse_grammer(x).unwrap().1;
+    let g = parse_grammer(&input_buffer).unwrap().1;
 
     println!("{:?}", g);
 }
@@ -71,13 +71,13 @@ struct RawGrammer {
 }
 
 named!(parse_grammer <RawGrammer>,
-    ws!(do_parse!(
+    dbg_dmp!(ws!(do_parse!(
         tag!(":Start:") >>
         start: call!(parse_symbol_name) >>
         tag!(":Terminals:") >>
-        terminals: many1!(call!(parse_symbol_name)) >> 
+        terminals: many0!(call!(parse_symbol_name)) >> 
         tag!(":NonTerminals:") >>
-        non_terminals: many1!(call!(parse_symbol_name)) >>
+        non_terminals: many0!(call!(parse_symbol_name)) >>
         tag!(":Rules:") >>
         rules: call!(parse_rules) >>
         (RawGrammer {
@@ -86,16 +86,17 @@ named!(parse_grammer <RawGrammer>,
             non_terminals: non_terminals,
             rules: rules
         })
-    ))
+    )))
 );
+
 named!(parse_rules <Vec<RawRule>>,
-    many1!(
+    dbg_dmp!(many1!(
         call!(parse_rule)
-    ) 
+    ))
 );
 
 named!(parse_rule <RawRule>,
-    ws!(do_parse!(
+    dbg_dmp!(ws!(do_parse!(
         head: call!(parse_symbol_name) >>
         tag!("->") >>
         alternate: many1!(
@@ -106,7 +107,7 @@ named!(parse_rule <RawRule>,
             head: head,
             alternate: alternate
         })
-    ))
+    )))
 );
 
 named!(parse_symbol_name <String>,
