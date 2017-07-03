@@ -1,0 +1,8 @@
+[package]
+name = "grammer_sets"
+version = "0.1.0"
+authors = ["Russell Bentley <russell.w.bentley@icloud.com>"]
+
+[dependencies]
+nom = "3.0.0"
+clap = "2.24.2"
