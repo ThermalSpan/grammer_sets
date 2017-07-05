@@ -1,0 +1,37 @@
+:Start: 
+Expr
+
+:Terminals:
+Dash SpecialChar Or Char Digit CharClass Star Plus Question Dot LBrace RBrace LBracket RBracket LParen RParen Underscore
+
+:NonTerminals:
+Expr Range Int IntCons IntMaybe MatchList MatchListCons Terminal MatchItem
+
+:Rules:
+Expr -> Expr Expr.
+Expr -> Expr Or Expr.
+Expr -> LParen Expr RParen.
+Expr -> Expr Range.
+Expr -> LBracket MatchList RBracket.
+
+Terminal -> SpecialChar.
+Terminal -> Char.
+Terminal -> Digit.
+Terminal -> CharClass.
+
+MatchItem -> Terminal.
+MatchItem -> Char Dash Char.
+MatchList -> Matchitem MatchListCons.
+MatchListCons -> MatchItem MatchListCons.
+MatchListcons -> Empty.
+
+Range -> Plus.
+Range -> Question.
+Range -> Star.
+Range -> LBrace Int MaybeInt RBrace.
+
+Int -> Digit IntEnd.
+IntCons -> Digit.
+IntCons -> Empty.
+IntMaybe -> Int.
+IntMaybe -> Underscore.

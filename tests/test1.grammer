@@ -1,0 +1,17 @@
+:Start:
+S
+
+:Terminals:
+a b c d
+
+:NonTerminals:
+E F G H
+
+:Rules:
+S -> a E.
+S -> b F.
+S -> G H a.
+E -> a a.
+F -> b c d.
+H -> a E a.
+H -> d a.
