@@ -51,6 +51,9 @@ fn main() {
         Some(g) => g,
         None => exit(3),
     };
+
+    grammer::follow_sets(&grammer);
+    grammer::first_sets(&grammer);
 }
 
 

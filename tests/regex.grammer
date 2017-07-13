@@ -13,6 +13,9 @@ Expr -> Expr Or Expr.
 Expr -> LParen Expr RParen.
 Expr -> Expr Range.
 Expr -> LBracket MatchList RBracket.
+Expr -> Char.
+Expr -> SpecialChar.
+Expr -> Digit.
 
 Terminal -> SpecialChar.
 Terminal -> Char.

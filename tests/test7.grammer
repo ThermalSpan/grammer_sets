@@ -1,0 +1,18 @@
+:Start: 
+S
+
+:Terminals:
+a b c d 
+e f g h
+
+:NonTerminals:
+Empty
+a
+A B C D E F 
+
+:Rules:
+S -> Empty a.
+S -> Empty.
+S -> A B CD E F.
+
+A -> a b f rt 56y.

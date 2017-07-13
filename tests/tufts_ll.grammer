@@ -1,0 +1,18 @@
+:Start:
+E
+
+:Terminals:
+LParen RParen Plus Star Id
+
+:NonTerminals:
+E T F X Y
+
+:Rules:
+E -> T X.
+X -> Plus T X.
+X -> Empty.
+T -> F Y.
+Y -> Star F Y.
+Y -> Empty.
+F -> LParen E RParen.
+F -> Id.

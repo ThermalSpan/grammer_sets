@@ -1,0 +1,19 @@
+:Start:
+E
+
+:Terminals:
+Plus LParen RParen id Star
+
+:NonTerminals:
+E T Eprime Tprime F 
+
+:Rules:
+E -> T Eprime.
+Eprime -> Plus T Eprime.
+Eprime -> Empty.
+T -> F Tprime.
+Tprime -> Star F Tprime.
+Tprime -> Empty.
+F -> LParen E RParen.
+F -> id.
+

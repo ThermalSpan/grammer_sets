@@ -64,6 +64,12 @@ pub fn check_grammer(raw_grammer: &mut RawGrammer) -> Option<Grammer> {
     
     let mut next_id = SymbolId::first();
     for name in raw_grammer.terminals.drain(..) {
+        // We only have one reserved name at the moment
+        if name == "Empty" {
+            println!("ERROR: Empty is a reserved name, it cannot be declared as a terminal");
+            error_count += 1;
+        }
+
         // Put the name in the map
         name_to_id_map.insert(name, (next_id, SymbolType::Terminal));
     
@@ -75,6 +81,11 @@ pub fn check_grammer(raw_grammer: &mut RawGrammer) -> Option<Grammer> {
     }
 
     for name in raw_grammer.non_terminals.drain(..) {
+        if name == "Empty" {
+            println!("ERROR: Empty is a reserved name, it cannot be declared as a nonterminal");
+            error_count += 1;
+        }
+ 
         // Put the name in the map, save whatever we may have popped out
         let maybe_value  = name_to_id_map.insert(name.clone(), (next_id, SymbolType::NonTerminal));
 
@@ -118,6 +129,11 @@ pub fn check_grammer(raw_grammer: &mut RawGrammer) -> Option<Grammer> {
         if rule.head == raw_grammer.start {
             found_start_rule = true; 
         }
+
+        if rule.head == "Empty" {
+            println!("ERROR: Empty cannot be the head of a rule");
+            error_count += 1;
+        }
         
         // Ensure the head is declared as a non terminal
         let mut head_id;
@@ -142,18 +158,26 @@ pub fn check_grammer(raw_grammer: &mut RawGrammer) -> Option<Grammer> {
         // Ensure all the alternates were delcared
         // if so, add their ids to the vec
         let mut alternate_ids = Vec::new();
+        let alternate_length = rule.alternate.len();
         for name in rule.alternate {
-            match name_to_id_map.get(&name) {
-                Some(&(id, _)) => {
-                    alternate_ids.push(id);
-                }
-                None => {
-                    println!("ERROR: {} was used in a rule alternate, but was not declared", name);
+            if name == "Empty" {
+                if alternate_length != 1 {
+                    println!("ERROR: Empty was not the only symbol in an a rule alternate");
                     error_count += 1;
+                }
+            } else {
+                match name_to_id_map.get(&name) {
+                    Some(&(id, _)) => {
+                        alternate_ids.push(id);
+                    }
+                    None => {
+                        println!("ERROR: {} was used in a rule alternate, but was not declared", name);
+                        error_count += 1;
+                    }
                 }
             }
         }
-    
+
         // Build an id based rule
         rules.push(
             Rule {
@@ -178,4 +202,122 @@ pub fn check_grammer(raw_grammer: &mut RawGrammer) -> Option<Grammer> {
         non_terminals: non_terminals,
         rules: rules
     })
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
+pub enum SetEntry {
+    Id(SymbolId),
+    Empty,
+    End
+}
+
+pub fn first_sets(grammer: &Grammer) {
+    let mut set_map = HashMap::new();
+    
+    // All first sets start as empty
+    for (id, _) in &grammer.id_map {
+        set_map.insert(id, HashSet::new());
+    }
+   
+    // For all terminals T, T is in First(T)
+    for id in &grammer.terminals {
+        set_map.get_mut(&id).unwrap().insert(SetEntry::Id(id.clone()));
+    }
+
+    let mut need_another_pass = true;
+    while need_another_pass {
+        need_another_pass = false;
+
+        for rule in &grammer.rules {
+            for rule_element in &rule.alternate {
+                let element_first_set: Vec<SetEntry> = 
+                    set_map.get(&rule_element).unwrap().iter()
+                    .map(|x| x.clone())
+                    .collect();
+
+                let mut current_set = set_map.get_mut(&rule.head).unwrap();
+
+                for id in &element_first_set {
+                    let inserted_something_new = current_set.insert(id.clone());
+                    need_another_pass = need_another_pass || inserted_something_new;
+                }
+
+                if ! id_follow_set.contains(&SetEntry::Empty) {
+                    break;
+                }
+            }
+        }
+    }
+
+    for (k, v) in &set_map {
+        let &(ref h, _) = grammer.id_map.get(&k).unwrap();
+        print!("First({}) = {{", h);
+        for s in v {
+            match *s {
+                SetEntry::Id(id) => {
+                    let &(ref n, _) = grammer.id_map.get(&id).unwrap();
+                    print!("{},", n)
+                }
+                SetEntry::Empty => print!("Empty,"),
+                SetEntry::End => print!("End,"),
+            };
+        }
+        print!("}}\n");
+    }}
+
+pub fn follow_sets(grammer: &Grammer) {
+    let mut set_map = HashMap::new();
+    
+    // All follow sets start as empty
+    for (id, _) in &grammer.id_map {
+        set_map.insert(id, HashSet::new());
+    }
+    
+    // All terminal symbols follow set include themselves
+    for id in &grammer.terminals {
+        set_map.get_mut(&id).unwrap().insert(SetEntry::Id(id.clone()));
+    }
+
+    let mut need_another_pass = true;
+    while need_another_pass {
+        need_another_pass = false;
+
+        for rule in &grammer.rules {
+
+            for id in &rule.alternate {
+                let id_follow_set: Vec<SetEntry> = set_map
+                    .get(&id)
+                    .unwrap().iter()
+                    .map(|x| x.clone())
+                    .collect();
+
+                let mut current_set = set_map.get_mut(&rule.head).unwrap();
+
+                for id in &id_follow_set {
+                    let inserted_something_new = current_set.insert(id.clone());
+                    need_another_pass = need_another_pass || inserted_something_new;
+                }
+
+                if ! id_follow_set.contains(&SetEntry::End) {
+                    break;
+                }
+            }
+        }
+    }
+
+    for (k, v) in &set_map {
+        let &(ref h, _) = grammer.id_map.get(&k).unwrap();
+        print!("Follow({}) = {{", h);
+        for s in v {
+            match *s {
+                SetEntry::Id(id) => {
+                    let &(ref n, _) = grammer.id_map.get(&id).unwrap();
+                    print!("{},", n)
+                }
+                SetEntry::Empty => print!("Empty,"),
+                SetEntry::End => print!("End,"),
+            };
+        }
+        print!("}}\n");
+    }
 }

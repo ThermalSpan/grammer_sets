@@ -112,9 +112,9 @@ named!(parse_name_vec <Vec<String>>,
 );
 
 named!(parse_rules <Vec<RawRule>>,
-    dbg_dmp!(many1!(
+    many1!(
         call!(parse_rule)
-    ))
+    )
 );
 
 named!(parse_rule <RawRule>,
