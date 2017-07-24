@@ -1,3 +1,5 @@
+extern crate nom;
+
 use nom::{ErrorKind, IResult};
 use grammer::*;
 
@@ -146,4 +148,4 @@ named!(parse_symbol_name <String>,
         (String::from(String::from_utf8_lossy(name))
         )
     )
-)
+);
