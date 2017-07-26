@@ -98,7 +98,12 @@ impl TypedAlphabet {
             .map(|result| result.clone())
     }
 
-    pub fn get_type_sets<'a>(&'a self, sym_type: SymbolType) -> &'a HashSet<SymbolId> {
+    pub fn get_type_set<'a>(&'a self, sym_type: SymbolType) -> &'a HashSet<SymbolId> {
         &self.type_sets[sym_type.index()]
+    }
+
+    pub fn is_type(&self, sym_id: &SymbolId, test_type: SymbolType) -> bool {
+        self.type_sets[test_type.index()]
+            .contains(sym_id)
     }
 }

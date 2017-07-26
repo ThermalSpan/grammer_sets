@@ -1,5 +1,6 @@
-use nom::{ErrorKind, IResult};
-use grammer::*;
+use nom::{alphanumeric, ErrorKind, IResult};
+use nom::verbose_errors::Err;
+use raw_grammer::*;
 
 const START_ERR: u32 = 1;
 const TERMINALS_ERR: u32 = 2;
@@ -28,10 +29,35 @@ fn error_code_to_str(code: u32) -> &'static str {
     }
 }
 
-fn print_error(err: ErrorKind) {
-    match err {
-        ErrorKind::Custom(code) => println!("ERROR: There was a problem parsing:\n{}", error_code_to_str(code)),
-        _ => println!("ERROR, of some kind? {:?}", err)
+fn error_kind_to_str(err: &ErrorKind) -> String {
+    match *err {
+        ErrorKind::Custom(code) => String::from(error_code_to_str(code)),
+        _ => format!("{:?}", err),
+    }
+}
+
+fn print_error(err: &Err<&[u8]>) {
+    match *err {
+        Err::Code(ref code) => println!("ERROR: There was an error {}", error_kind_to_str(code)),
+        Err::Node(ref code, ref errs) => {
+            println!(
+                "ERROR: There was a node error: {}\n It contained {} other errors", 
+                error_kind_to_str(code),
+                errs.len()
+            );
+            let _: Vec<()> = errs.iter().map(|e| print_error(e)).collect();
+        },
+        Err::Position(ref code, ref pos) => {
+            println!("ERROR: There was an error at {}:\n{}", String::from_utf8_lossy(pos), error_kind_to_str(code));
+        },
+        Err::NodePosition(ref code, ref pos, ref errs) => {
+            println!(
+                "ERROR: There was an node error at {}:\n{}\nThere were {} errors contained",
+                String::from_utf8_lossy(pos),
+                error_kind_to_str(code),
+                errs.len()
+            );
+        }
     }
 }
 
@@ -51,7 +77,7 @@ pub fn parse(input: &[u8]) -> Option<RawGrammer> {
             }
         },
         IResult::Error(err) => {
-            print_error(err);
+            print_error(&err);
             None
         },
         IResult::Incomplete(needed) => {
@@ -142,8 +168,8 @@ named!(parse_rule <RawRule>,
 
 named!(parse_symbol_name <String>,
     do_parse!(
-        name: call!(nom::alphanumeric) >>
+        name: call!(alphanumeric) >>
         (String::from(String::from_utf8_lossy(name))
         )
     )
-)
+);
